@@ -29,6 +29,18 @@ This deployment requires the following variables:
 | `stack_name` | The name of the Stack to deploy to | The name of the Stack you created (e.g., "samples") |
 | `sample_stack_secret_name` | Name of a Stack Secret with any sample value | The name you gave the secret when creating it |
 
+The following are optional and can be used if you wish to explore how Snap CD supports remote backend configuration. (In this sample we show you how to do with for Azure, but the same approach would work for any remote backend). When you first deploy this sample we recommend leaving them unset so that your Runner uses local state storage. Thereafter, see the section below on **Backend Configuration" for a discussion how you can use various Snap CD configuration resources in order make terraform/opentofu store your state files remotely.
+
+| Variable | Description | 
+|----------|-------------|
+| `azure_backend_enabled` | Set to `true` to deploy the `snapcd_...` so that your sample Modules store their states remotely on Azure |
+| `azure_backend_tenant_id` | Your Azure Tenant Id |
+| `azure_backend_subscription_id` | Your Azure Subscription Id |
+| `azure_backend_resource_group_name` | The name of the Resource Group where you Azure Storage Account is |
+| `azure_backend_storage_account_name` | The name of your Azure Storage Account |
+| `azure_backend_storage_container_name` | The name of the storage container within your Azure Storage Account where your state files will be saved |
+
+
 ### Setting Variables
 
 Create a `terraform.tfvars` file:
@@ -93,3 +105,46 @@ terraform plan
 # Apply changes
 terraform apply
 ```
+
+## Backend Configuration
+
+
+It is important to realise that Snap CD's goal is *orchestration* and that it therefore only stores data that supports that goal. It *does not* for example store your highly sensitive and business-critical state files; this remains fully in your control and is determined by the backend config your terrafom code uses. If no backend is configured (as is typically the case in a pure reusable module) terraform/opentofu will use a local state file. What this means in the context of Snap CD is that your Runner will store the state on its local storage. If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. The way this is configured in terraform/opentofu is in the `terraform` block, e.g:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "tfstateprod001"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+  }
+}
+```
+
+followed by 
+
+```bash
+terraform init
+```
+
+Alternatively with 
+
+```hcl
+terraform {
+  backend "azurerm" {}
+}
+```
+
+in conjuction with "backend-config" flags:
+
+```bash
+terraform init \
+  -backend-config="resource_group_name=rg-terraform-state" \
+  -backend-config="storage_account_name=tfstateprod001" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=prod.terraform.tfstate"
+```
+
+Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/). Depending on your exact requirements, using one or more of the above resource types 
+
