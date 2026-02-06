@@ -12,12 +12,7 @@ resource "snapcd_namespace" "sample" {
 
   name     = "sample-full"
   stack_id = data.snapcd_stack.sample_full.id
-  trigger_behaviour_on_modified = "TriggerAllImmediately" 
-
-  default_auto_migrate_enabled = true
-  default_auto_reconfigure_enabled = false
-  default_auto_upgrade_enabled = true
-  default_clean_init_enabled = false
+  trigger_behaviour_on_modified = "TriggerAllImmediately"
 }
 
 resource "snapcd_namespace_input_from_literal" "sample" {
@@ -73,7 +68,7 @@ resource "snapcd_namespace_backend_config" "azure_backend" {
     resource_group_name  = var.azure_backend_resource_group_name
     storage_account_name = var.azure_backend_storage_account_name
     container_name       = var.azure_backend_storage_container_name
-    key                  = "snapcd/sample-deployment/$${SNAPCD_MODULE_NAME}.tfstate"
+    key                  = "snapcd/sample-deployment/$${SNAPCD_MODULE_NAME}2.tfstate"
   } : {}
 
   namespace_id = snapcd_namespace.sample.id
