@@ -1,6 +1,6 @@
-# Sample Deployment - Full
+# Sample Deployment
 
-This sample demonstrates a complete application deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs), including secrets management, complex module dependencies, and multiple application components.
+This sample demonstrates a complete application deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs).
 
 ## Prerequisites
 
@@ -79,10 +79,12 @@ This sample creates a sample e-commerce application stack with the following mod
 
 The above illustrates a dependency graph as follows
 
+```
        |-----> cluster  ----- |
 vpc ---|                      | ---> app
        |-----> database ----- |
 
+```
 
 ## Key Concepts
 
@@ -95,6 +97,8 @@ vpc ---|                      | ---> app
 
 ## Usage
 
+Once you have created to `terraform.tfvars` file and are ready to start deploying, us the usual terraform commands, e.g:
+
 ```bash
 # Initialize Terraform
 terraform init
@@ -106,10 +110,15 @@ terraform plan
 terraform apply
 ```
 
+After running `terraform apply`, navigate to [snapcd.io/Stacks/samples?action=DependencyGraph](https://snapcd.io/Stacks/samples?action=DependencyGraph) (provided that "samples" is what you called your Stack) to see the dependency graph.
+
+
 ## Backend Configuration
 
-
 It is important to realise that Snap CD's goal is *orchestration* and that it therefore only stores data that supports that goal. It *does not* for example store your highly sensitive and business-critical state files; this remains fully in your control and is determined by the backend config your terrafom code uses. If no backend is configured (as is typically the case in a pure reusable module) terraform/opentofu will use a local state file. What this means in the context of Snap CD is that your Runner will store the state on its local storage. If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. The way this is configured in terraform/opentofu is in the `terraform` block, e.g:
+
+
+### Typical Backend Configuration
 
 ```hcl
 terraform {
@@ -146,5 +155,9 @@ terraform init \
   -backend-config="key=prod.terraform.tfstate"
 ```
 
-Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/). Depending on your exact requirements, using one or more of the above resource types 
+### How Snap CD helps you inject such a configuraiton
+
+Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/). Depending on your exact requirements, you could use one or more of these resources to instantiate the backend.
+
+(As an aside note, [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/) are also quite useful for provider initialization).
 
