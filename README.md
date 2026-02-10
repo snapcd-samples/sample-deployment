@@ -1,6 +1,25 @@
-# Sample Deployment - Full
+# Introduction
 
-This sample demonstrates a complete application deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs), including secrets management, complex module dependencies, and multiple application components.
+This sample demonstrates a sample deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs).
+
+In the root of this repo is a terraform project that you can run with `terraform init`, `terraform apply` and so forth. Within the `./module` folder you'll find the actual `snapcd_...` resources that will be created. These are in files numbered `01` through to `07`. This is meant as a guide for the order in which you should read through the files, as each subsequent one will introduce one new resources. Within the .tf files themselves you will find extensive comments that explain the thinking behind each of the resources.
+
+The Snap CD resources you will be creating will in turn manage four modules with mock resources (we will not actually be deploying a vpc etc.):
+
+```
+       |-----> cluster  ----- |
+vpc ---|                      | ---> app
+       |-----> database ----- |
+```
+
+The following concepts are addressed in this guide:
+- **Stack Secrets** - Using secured stored secrets with the `snapcd_module_input_from_secret` data source.
+- **Output Sets** - Passing all outputs from one module to another via `snapcd_module_input_from_output_set`
+- **Single Output** - Passing a specific output via `snapcd_module_input_from_output`
+- **Non-String Types** - Using `type = "NotString"` for numeric values (e.g., replicas)
+- **Environment Variables** - Passing env vars to module execution
+- **Lifecycle Hooks** - Running commands during module lifecycle (`init_before_hook`)
+
 
 ## Prerequisites
 
@@ -29,21 +48,8 @@ This deployment requires the following variables:
 | `stack_name` | The name of the Stack to deploy to | The name of the Stack you created (e.g., "samples") |
 | `sample_stack_secret_name` | Name of a Stack Secret with any sample value | The name you gave the secret when creating it |
 
-The following are optional and can be used if you wish to explore how Snap CD supports remote backend configuration. (In this sample we show you how to do with for Azure, but the same approach would work for any remote backend). When you first deploy this sample we recommend leaving them unset so that your Runner uses local state storage. Thereafter, see the section below on **Backend Configuration" for a discussion how you can use various Snap CD configuration resources in order make terraform/opentofu store your state files remotely.
 
-| Variable | Description | 
-|----------|-------------|
-| `azure_backend_enabled` | Set to `true` to deploy the `snapcd_...` so that your sample Modules store their states remotely on Azure |
-| `azure_backend_tenant_id` | Your Azure Tenant Id |
-| `azure_backend_subscription_id` | Your Azure Subscription Id |
-| `azure_backend_resource_group_name` | The name of the Resource Group where you Azure Storage Account is |
-| `azure_backend_storage_account_name` | The name of your Azure Storage Account |
-| `azure_backend_storage_container_name` | The name of the storage container within your Azure Storage Account where your state files will be saved |
-
-
-### Setting Variables
-
-Create a `terraform.tfvars` file:
+To set the varialbe, create a `terraform.tfvars` file:
 
 ```hcl
 client_id                  = "your-client-id"
@@ -65,33 +71,6 @@ export TF_VAR_stack_name="samples"
 export TF_VAR_sample_stack_secret="my-secret-name"
 ```
 
-## What This Sample Creates
-
-This sample creates a sample e-commerce application stack with the following modules:
-
-### Infrastructure Layer
-- **VPC** - Virtual network with public/private subnets, environment variables, and lifecycle hooks
-- **Cluster** - Kubernetes cluster depending on VPC outputs
-- **Database** - Database instance in the private subnet
-- **App** - Web application with dependencies on cluster, 
-
-## Architecture
-
-The above illustrates a dependency graph as follows
-
-       |-----> cluster  ----- |
-vpc ---|                      | ---> app
-       |-----> database ----- |
-
-
-## Key Concepts
-
-- **Stack Secrets** - Using secured stored secrets with the `snapcd_module_input_from_secret` data source.
-- **Output Sets** - Passing all outputs from one module to another via `snapcd_module_input_from_output_set`
-- **Single Output** - Passing a specific output via `snapcd_module_input_from_output`
-- **Non-String Types** - Using `type = "NotString"` for numeric values (e.g., replicas)
-- **Environment Variables** - Passing env vars to module execution
-- **Lifecycle Hooks** - Running commands during module lifecycle (`init_before_hook`)
 
 ## Usage
 
@@ -106,45 +85,11 @@ terraform plan
 terraform apply
 ```
 
-## Backend Configuration
 
+## A word on backends (state file storage)
 
-It is important to realise that Snap CD's goal is *orchestration* and that it therefore only stores data that supports that goal. It *does not* for example store your highly sensitive and business-critical state files; this remains fully in your control and is determined by the backend config your terrafom code uses. If no backend is configured (as is typically the case in a pure reusable module) terraform/opentofu will use a local state file. What this means in the context of Snap CD is that your Runner will store the state on its local storage. If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. The way this is configured in terraform/opentofu is in the `terraform` block, e.g:
+It is important to realise that Snap CD's goal is *orchestration* and that it therefore only stores data that supports that goal. It *does not* for example store your highly sensitive and business-critical state files; this remains fully in your control and is determined by the backend config your terrafom code uses. If no backend is configured (as is typically the case in a pure reusable module) terraform/opentofu will use a local state file. What this means in the context of Snap CD is that your Runner will store the state on its local storage. In this sample deployment, that is exactly what will happen. 
 
-```hcl
-terraform {
-  backend "azurerm" {
-    resource_group_name  = "rg-terraform-state"
-    storage_account_name = "tfstateprod001"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
-  }
-}
-```
+If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. How to configure remote backends is outside of the scope of this sample, except to mention that Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/). Depending on your exact requirements, using one or more of the above resource types will allow you to inject any backend configuration you need into your modules.
 
-followed by 
-
-```bash
-terraform init
-```
-
-Alternatively with 
-
-```hcl
-terraform {
-  backend "azurerm" {}
-}
-```
-
-in conjuction with "backend-config" flags:
-
-```bash
-terraform init \
-  -backend-config="resource_group_name=rg-terraform-state" \
-  -backend-config="storage_account_name=tfstateprod001" \
-  -backend-config="container_name=tfstate" \
-  -backend-config="key=prod.terraform.tfstate"
-```
-
-Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/). Depending on your exact requirements, using one or more of the above resource types 
-
+If you have completed this sample deployment and wish to explore [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/), please see the [sample-deployment-azure-backed](https://github.com/snapcd-samples/sample-deployment-azure-backend) repository.
