@@ -23,7 +23,7 @@ resource "snapcd_namespace" "sample" {
   // - https://docs.snapcd.io/how-it-works/configuration/stack-namespace-module/#namespace
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace
   //
-  // </NOTES
+  // </NOTES>
 
 
   name     = "sample-full"
@@ -35,16 +35,16 @@ resource "snapcd_namespace_input_from_literal" "sample" {
 
   // <NOTES>
   //
-  // This is a namespace input. Every module within the namespace will receive the input variable "resource_group_name" by default ever time
+  // This is a namespace input. Every module within the namespace will receive the input variable "resource_group_name" by default every time
   // the module is deployed. This behaviour can be toggled with the "usage_mode" flag.
   //
-  // This is namespace input is from a literal value. namespace inputs can also be from "Defition" or "secret".
+  // This namespace input is from a literal value. Namespace inputs can also be from "Definition" or "Secret".
   //
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/configuration/namespace-inputs/
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_input_from_literal
   //
-  // </NOTES
+  // </NOTES>
 
 
   input_kind    = "Param"
@@ -68,14 +68,14 @@ resource "snapcd_namespace_input_from_literal" "sample" {
 
 data "snapcd_runner" "sample_full" {
   // <NOTES>
-  // This is a "Runner". We are fetching it by name so that we can get its ID. We need to pass into the module definitions
-  // so that Snap CD knows which runner pass the deployment jobs to.
+  // This is a "Runner". We are fetching it by name so that we can get its ID. We need to pass it into the module definitions
+  // so that Snap CD knows which runner to pass the deployment jobs to.
   //
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/configuration/runner/
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/runner
   //
-  // </NOTES
+  // </NOTES>
 
   name = var.runner_name
 }
@@ -90,7 +90,7 @@ resource "snapcd_module" "vpc" {
   // - https://docs.snapcd.io/how-it-works/configuration/stack-namespace-module/#module
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module
   //
-  // </NOTES
+  // </NOTES>
 
   name                     = "vpc"
   namespace_id             = snapcd_namespace.sample.id
@@ -113,7 +113,7 @@ resource "snapcd_module_input_from_literal" "vpc_params" {
   //
   // For more detail, see https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_input_from_literal
   // 
-  // </NOTES
+  // </NOTES>
 
   for_each = {
     vpc_name            = "demo-vpc"
@@ -133,7 +133,7 @@ resource "snapcd_module_input_from_literal" "env_vars" {
   // <NOTES>
   // This also an "input" into the above "module", but by setting input_kind equal to "EnvVar" (as opposed to "Param") we are 
   // instructing Snap CD to use the literal value below to populate the "SOME_ENV_VAR" environment variable with the value "Hello World!"
-  // </NOTES
+  // </NOTES>
 
   for_each = {
     SOME_ENV_VAR = "Hello World!"
@@ -176,14 +176,14 @@ resource "snapcd_module_input_from_output" "private_subnet_id" {
   //
   // This is an input into the above module, taking its value from an Output from the "vpc" module. It tells Snap CD to always take the value of 
   // Output "private_subnet_id" from the "vpc" module and using it as the input variable "deploy_to_subnet_id" on the "database" module. This
-  // also creates a depedency, so Snap CD now knows (among other things) that if "vpc" produces changed outputs, it should rerun "database".
+  // also creates a dependency, so Snap CD now knows (among other things) that if "vpc" produces changed outputs, it should rerun "database".
   // 
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/outputs/
   // - https://docs.snapcd.io/how-it-works/orchestration/#trigger-on-source-changed
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_input_from_output
   //
-  // </NOTES
+  // </NOTES>
 
   input_kind       = "Param"
   module_id        = snapcd_module.database.id
@@ -207,7 +207,7 @@ resource "snapcd_module_input_from_literal" "database_params" {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 3. module "cluster"
+// 4. module "cluster"
 //
 // Learn about:
 // - snapcd_module_input_from_output_set
@@ -248,13 +248,13 @@ resource "snapcd_module_input_from_output_set" "cluster_params" {
   //
   // This is an input into the "cluster" module, taking its value from the "vpc" module's OutputSet. It tells Snap CD to always take all outputs
   // produced by "vpc" and match them by name to the "cluster" module's input variables. For example, "vpc" outputs a value for "private_subnet_id"
-  // and "cluster" expects and input variable by the same name, hence this variable will be pulled in as an input.
+  // and "cluster" expects an input variable by the same name, hence this variable will be pulled in as an input.
   // 
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/configuration/module-inputs/#from-output-set
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_input_from_output_set
   //
-  // </NOTES
+  // </NOTES>
 
   input_kind       = "Param"
   module_id        = snapcd_module.cluster.id
@@ -266,7 +266,7 @@ resource "snapcd_module_input_from_output_set" "cluster_params" {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 4. module "app"
+// 5. module "app"
 //
 // Learn about:
 // - snapcd_module_input_from_secret
@@ -298,7 +298,7 @@ data "snapcd_stack_secret" "storefront_db_user_password" {
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/configuration/secrets/
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/data-sources/stack_secret
-  // </NOTES
+  // </NOTES>
   name     = var.sample_stack_secret_name 
   stack_id = data.snapcd_stack.sample_full.id
 }
@@ -312,11 +312,10 @@ resource "snapcd_module_input_from_secret" "app_params_database_user_password" {
   // on the "app" module.
   // 
   // For more detail, see:
-  // - https://docs.snapcd.io/how-it-works/outputs/
-  // - https://docs.snapcd.io/how-it-works/orchestration/#trigger-on-source-changed
-  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_input_from_output
+  // - https://docs.snapcd.io/how-it-works/configuration/secrets/
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_input_from_secret
   //
-  // </NOTES
+  // </NOTES>
 
   input_kind = "Param"
   module_id  = snapcd_module.app.id
@@ -334,7 +333,7 @@ resource "snapcd_module_input_from_literal" "app_params_notstring" {
   // "NotString" means: replicas=3
   // "String"    means: replicas="3"
   // 
-  // </NOTES
+  // </NOTES>
 
   for_each = {
     replicas = 3

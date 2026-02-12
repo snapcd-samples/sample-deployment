@@ -2,7 +2,7 @@
 
 This sample demonstrates a sample deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs).
 
-In the root of this repo is a terraform project that you can run with `terraform init`, `terraform apply` and so forth. Within the `./module` folder you'll find the actual `snapcd_...` resources that will be created. These are in files numbered `01` through to `07`. This is meant as a guide for the order in which you should read through the files, as each subsequent one will introduce one new resources. Within the .tf files themselves you will find extensive comments that explain the thinking behind each of the resources.
+In the root of this repo is a terraform project that you can run with `terraform init`, `terraform apply` and so forth. Within `main.tf` you'll find the actual `snapcd_...` resources that will be created. These are in numbered sections, meant as a guide for the order in which you should read through them, as each subsequent one introduces a new resource type. >ou will find extensive comments that explain the thinking behind each of the resources.
 
 The Snap CD resources you will be creating will in turn manage four modules with mock resources (we will not actually be deploying a vpc etc.):
 
@@ -13,12 +13,12 @@ vpc ---|                      | ---> app
 ```
 
 The following concepts are addressed in this guide:
-- **Stack Secrets** - Using secured stored secrets with the `snapcd_module_input_from_secret` data source.
+- **Namespace Inputs** - Providing default inputs to all modules in a namespace via `snapcd_namespace_input_from_literal`
+- **Stack Secrets** - Using secured stored secrets with the `snapcd_module_input_from_secret` resource.
 - **Output Sets** - Passing all outputs from one module to another via `snapcd_module_input_from_output_set`
 - **Single Output** - Passing a specific output via `snapcd_module_input_from_output`
 - **Non-String Types** - Using `type = "NotString"` for numeric values (e.g., replicas)
 - **Environment Variables** - Passing env vars to module execution
-- **Lifecycle Hooks** - Running commands during module lifecycle (`init_before_hook`)
 
 
 ## Prerequisites
@@ -49,7 +49,7 @@ This deployment requires the following variables:
 | `sample_stack_secret_name` | Name of a Stack Secret with any sample value | The name you gave the secret when creating it |
 
 
-To set the varialbe, create a `terraform.tfvars` file:
+To set the variables, create a `terraform.tfvars` file:
 
 ```hcl
 client_id                  = "your-client-id"
@@ -57,7 +57,7 @@ client_secret              = "your-client-secret"
 organization_id            = "your-organization-id"
 runner_name                = "your-runner-name"
 stack_name                 = "samples"
-sample_stack_secret        = "my-secret-name"
+sample_stack_secret_name        = "my-secret-name"
 ```
 
 Alternatively, use environment variables:
@@ -68,7 +68,7 @@ export TF_VAR_client_secret="your-client-secret"
 export TF_VAR_organization_id="your-organization-id"
 export TF_VAR_runner_name="your-runner-name"
 export TF_VAR_stack_name="samples"
-export TF_VAR_sample_stack_secret="my-secret-name"
+export TF_VAR_sample_stack_secret_name="my-secret-name"
 ```
 
 
