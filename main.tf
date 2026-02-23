@@ -277,7 +277,7 @@ resource "snapcd_module_terraform_flag" "upgrade" {
 
   module_id        = snapcd_module.cluster.id
   task             = "Init"
-  flag             = "Update"
+  flag             = "Upgrade"
 }
 
 
