@@ -57,7 +57,7 @@ client_secret              = "your-client-secret"
 organization_id            = "your-organization-id"
 runner_name                = "your-runner-name"
 stack_name                 = "samples"
-sample_stack_secret_name        = "my-secret-name"
+sample_stack_secret_name   = "my-secret-name"
 ```
 
 Alternatively, use environment variables:
@@ -91,8 +91,8 @@ terraform apply
 
 It is important to realise that Snap CD's goal is *orchestration* and that it therefore only stores data that supports that goal. It *does not* for example store your highly sensitive and business-critical state files; this remains fully in your control and is determined by the backend config your terrafom code uses. If no backend is configured (as is typically the case in a pure reusable module) terraform/opentofu will use a local state file. What this means in the context of Snap CD is that your Runner will store the state on its local storage. In this sample deployment, that is exactly what will happen. 
 
-If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. How to configure remote backends is outside of the scope of this sample, except to mention that Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/). Depending on your exact requirements, using one or more of the above resource types will allow you to inject any backend configuration you need into your modules.
+If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. How to configure remote backends is outside of the scope of this sample, except to mention that Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Array Flags](https://docs.snapcd.io/how-it-works/configuration/backend-configs/). Depending on your exact requirements, using one or more of the above resource types will allow you to inject any backend configuration you need into your modules.
 
 (As an aside note, [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/) are also quite useful for provider initialization).
 
-If you have completed this sample deployment and wish to explore [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Backend Configs](https://docs.snapcd.io/how-it-works/configuration/backend-configs/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/), please see the [sample-deployment-azure-backed](https://github.com/snapcd-samples/sample-deployment-azure-backend) repository.
+If you have completed this sample deployment and wish to explore [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Array Flags](https://docs.snapcd.io/how-it-works/configuration/backend-configs/), please see the [sample-deployment-azure-backed](https://github.com/snapcd-samples/sample-deployment-azure-backend) repository.

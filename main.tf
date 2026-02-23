@@ -26,7 +26,7 @@ resource "snapcd_namespace" "sample" {
   // </NOTES>
 
 
-  name     = "sample-full"
+  name     = "sample"
   stack_id = data.snapcd_stack.sample_full.id
   trigger_behaviour_on_modified = "TriggerAllImmediately"
 }
@@ -98,10 +98,7 @@ resource "snapcd_module" "vpc" {
   source_url               = "https://github.com/snapcd-samples/mock-module-vpc.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample_full.id
-  auto_upgrade_enabled     = true
-  auto_reconfigure_enabled = true
-  auto_migrate_enabled     = false
-  clean_init_enabled       = false
+
   init_before_hook         = "echo $SOME_ENV_VAR"
 }
 
@@ -164,10 +161,18 @@ resource "snapcd_module" "database" {
   source_url               = "https://github.com/snapcd-samples/mock-module-database.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample_full.id
-  auto_upgrade_enabled     = true
-  auto_reconfigure_enabled = true
-  auto_migrate_enabled     = false
-  clean_init_enabled       = false
+
+  // <NOTES>
+  // By setting "apply_approval_threshold = 1" here, Snap CD will pause on a plan that would result in any changes. It will wait
+  // until explicit approval has been granted before continuing with apply.
+  //
+  // Approval thresholds for "destroy" are handled separately. In this example, a "destroy" would require approvals from two 
+  // seperate principals.
+  //
+  // </NOTES>
+
+  apply_approval_threshold = 1
+  destroy_approval_threshold = 2
 }
 
 
@@ -223,10 +228,7 @@ resource "snapcd_module" "cluster" {
   source_url               = "https://github.com/snapcd-samples/mock-module-kubernetes-cluster.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample_full.id
-  auto_upgrade_enabled     = true
-  auto_reconfigure_enabled = true
-  auto_migrate_enabled     = false
-  clean_init_enabled       = false
+
 }
 
 resource "snapcd_module_input_from_literal" "cluster_params" {
@@ -262,6 +264,22 @@ resource "snapcd_module_input_from_output_set" "cluster_params" {
   output_module_id = snapcd_module.vpc.id
 }
 
+resource "snapcd_module_terraform_flag" "upgrade" {
+  // <NOTES>
+  //
+  // This instructs Snap CD to set the "-upgrade" flag when initializing Terraform/OpenTofu.
+  // 
+  // For more detail, see:
+  // - https://docs.snapcd.io/how-it-works/configuration/module-inputs/#from-output-set
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_terraform_flag
+  //
+  // </NOTES>
+
+  module_id        = snapcd_module.cluster.id
+  task             = "Init"
+  flag             = "Update"
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -281,10 +299,7 @@ resource "snapcd_module" "app" {
   source_url               = "https://github.com/snapcd-samples/mock-module-kubernetes-app-storefront.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample_full.id
-  auto_upgrade_enabled     = true
-  auto_reconfigure_enabled = true
-  auto_migrate_enabled     = false
-  clean_init_enabled       = false
+
 }
 
 
