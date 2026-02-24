@@ -1,9 +1,3 @@
-// need to init provider
-variable "client_id" {}
-variable "client_secret" { sensitive  = true }
-variable "organization_id" {}
-
-// passed into module
 variable "runner_name" {}
 variable "stack_name" {}
 variable "sample_stack_secret_name" {}

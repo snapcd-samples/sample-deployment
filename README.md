@@ -2,7 +2,7 @@
 
 This sample demonstrates a sample deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs).
 
-In the root of this repo is a terraform project that you can run with `terraform init`, `terraform apply` and so forth. Within `main.tf` you'll find the actual `snapcd_...` resources that will be created. These are in numbered sections, meant as a guide for the order in which you should read through them, as each subsequent one introduces a new resource type. >ou will find extensive comments that explain the thinking behind each of the resources.
+In the root of this repo is a terraform project that you can run with `terraform init`, `terraform apply` and so forth. Within `./module/main.tf` you'll find the actual `snapcd_...` resources that will be created. These are in numbered sections, meant as a guide for the order in which you should read through them, as each subsequent one introduces a new resource type. >ou will find extensive comments that explain the thinking behind each of the resources.
 
 The Snap CD resources you will be creating will in turn manage four modules with mock resources (we will not actually be deploying a vpc etc.):
 
