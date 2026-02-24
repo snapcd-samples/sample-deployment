@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     snapcd = {
-      source = "schrieksoft/snapcd"
+      source  = "registry.terraform.io/schrieksoft/snapcd"
       version = "0.9.6"      
     }    
 
