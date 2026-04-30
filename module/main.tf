@@ -54,6 +54,26 @@ resource "snapcd_namespace_input_from_literal" "sample" {
   usage_mode    = "UseByDefault"
 }
 
+resource "snapcd_namespace_hook" "default_plan_before" {
+
+  // <NOTES>
+  //
+  // This is a namespace-level hook. Every module within the namespace will run this script
+  // before the "plan" task runs, unless the module overrides it with its own snapcd_module_hook
+  // for the same (task, phase). Valid task values: Plan, PlanDestroy, Apply, Destroy, Output, Validate.
+  // Valid phase values: Before, After.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_hook
+  //
+  // </NOTES>
+
+  namespace_id = snapcd_namespace.sample.id
+  task         = "Plan"
+  phase        = "Before"
+  script       = "echo 'about to plan a module in the sample namespace'"
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -98,8 +118,21 @@ resource "snapcd_module" "vpc" {
   source_url               = "https://github.com/snapcd-samples/mock-module-vpc.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
+}
 
-  init_before_hook         = "echo $SOME_ENV_VAR"
+resource "snapcd_module_hook" "vpc_init_before" {
+  // <NOTES>
+  //
+  // Init hook for the "vpc" module. Runs the given shell script before the "init" task.
+  // Init is the first task in the lifecycle (it sets up the working directory, downloads
+  // providers, configures the backend) and runs as part of every other task that follows.
+  //
+  // </NOTES>
+
+  module_id = snapcd_module.vpc.id
+  task      = "Init"
+  phase     = "Before"
+  script    = "echo $SOME_ENV_VAR"
 }
 
 resource "snapcd_module_input_from_literal" "vpc_params" {
@@ -268,7 +301,7 @@ resource "snapcd_module_terraform_flag" "upgrade" {
   // <NOTES>
   //
   // This instructs Snap CD to set the "-upgrade" flag when initializing Terraform/OpenTofu.
-  // 
+  //
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/configuration/module-inputs/#from-output-set
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_terraform_flag
@@ -278,6 +311,32 @@ resource "snapcd_module_terraform_flag" "upgrade" {
   module_id        = snapcd_module.cluster.id
   task             = "Init"
   flag             = "Upgrade"
+}
+
+resource "snapcd_module_hook" "cluster_apply_before" {
+  // <NOTES>
+  //
+  // This is a module-level hook. It runs the given shell script just before the "apply" task
+  // runs on the "cluster" module. A module hook overrides any namespace hook with the same
+  // (task, phase). Use snapcd_module's `ignore_namespace_hooks = true` to suppress all
+  // namespace-level hooks for this specific module.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_hook
+  //
+  // </NOTES>
+
+  module_id = snapcd_module.cluster.id
+  task      = "Apply"
+  phase     = "Before"
+  script    = "echo 'about to apply cluster changes'"
+}
+
+resource "snapcd_module_hook" "cluster_apply_after" {
+  module_id = snapcd_module.cluster.id
+  task      = "Apply"
+  phase     = "After"
+  script    = "echo 'cluster apply finished'"
 }
 
 
