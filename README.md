@@ -23,17 +23,7 @@ The following concepts are addressed in this guide:
 
 ## Prerequisites
 
-Before deploying this sample, complete the following steps from the [Quickstart Guide](https://docs.snapcd.io/quickstart/):
-
-1. **Create a User Account** - Sign up at [snapcd.io](https://snapcd.io)
-2. **Create an Organization** - Set up your organization on first login
-3. **Generate Credentials** - Create either:
-   - A personal access token for your user, OR
-   - A Service Principal with `Organization.Owner` permissions
-4. **Register and Deploy a Runner** - Follow the runner deployment instructions
-5. **Create a Stack** - Create a Stack (e.g., "samples") via the portal or API
-6. **Create Stack Secret** - Create a secret in your Stack and pass its name into the `sample_stack_secret_name` (see below) variable. (For the purposes of this sample it does not matter what value you store in the Stack Secret, it is meant only to illustrate the functionality). You can read more about Secrets [here](https://docs.snapcd.io/how-it-works/configuration/secrets/)
-
+Before deploying this sample, complete the steps from the [Self-Hosted Quickstart Guide](https://docs.snapcd.io/quickstart/self-hosted)
 
 ## Variables
 
