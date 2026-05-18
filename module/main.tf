@@ -202,10 +202,12 @@ resource "snapcd_module" "database" {
   // Approval thresholds for "destroy" are handled separately. In this example, a "destroy" would require approvals from two 
   // seperate principals.
   //
+  // Note this feature is only available in the "Lite" and "Enterpise" editions
+  // 
   // </NOTES>
 
-  apply_approval_threshold = 1
-  destroy_approval_threshold = 2
+  // apply_approval_threshold = 1
+  // destroy_approval_threshold = 2
 }
 
 
