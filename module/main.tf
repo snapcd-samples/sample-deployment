@@ -118,6 +118,7 @@ resource "snapcd_module" "vpc" {
   source_url               = "https://github.com/snapcd-samples/mock-module-vpc.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
+  // apply_approval_threshold = 1
 }
 
 resource "snapcd_module_hook" "vpc_init_before" {
@@ -449,5 +450,89 @@ resource "snapcd_module_input_from_output_set" "app_params_from_database" {
   module_id        = snapcd_module.app.id
   name             = "from_database"
   output_module_id = snapcd_module.database.id
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// 6. Agent & Missions
+//
+// Learn about:
+// - snapcd_agent (as a data source — pre-registered in the Dashboard)
+// - snapcd_agent_namespace_assignment
+// - snapcd_namespace_mission (SummarizeJob / AutoDiagnose / ApprovalRecommend)
+//
+// Missions are AI-driven recipes that run automatically against Job events
+// (success → SummarizeJob, failure / cancel / decline → AutoDiagnose,
+// awaiting-approval → ApprovalRecommend). They run inside an Agent that you
+// host yourself, alongside one or more provider-specific Sidecars (the default
+// being Claude).
+//
+// For background, see:
+// - https://docs.snapcd.io/components/agent
+//
+///////////////////////////////////////////////////////////////////////////////
+
+
+data "snapcd_agent" "sample" {
+  // <NOTES>
+  //
+  // The Agent itself must already exist before this `terraform apply` runs.
+  // Register one via the Dashboard at https://snapcd.io/Agents (Cloud) or your
+  // Self-Hosted Server's `/Agents` page — name it, attach a Service Principal,
+  // and deploy at least one Instance using one of the reference deployments
+  // (https://github.com/schrieksoft/snapcd-deployment-docker etc.).
+  //
+  // We look it up by name here so the missions below can reference its ID
+  // without you having to copy the GUID into your tfvars. Same shape as the
+  // Runner section above.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/data-sources/agent
+  //
+  // </NOTES>
+
+  name = var.agent_name
+}
+
+resource "snapcd_agent_namespace_assignment" "sample" {
+  // <NOTES>
+  //
+  // Permits the Agent to handle Missions for any Module inside this Namespace.
+  // Mirrors the snapcd_runner_namespace_assignment pattern from section 2 —
+  // namespace-scoped permission so you only have to write this once even if
+  // the namespace grows to many modules.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/agent_namespace_assignment
+  //
+  // </NOTES>
+
+  agent_id     = data.snapcd_agent.sample.id
+  namespace_id = snapcd_namespace.sample.id
+}
+
+
+resource "snapcd_namespace_mission" "summarize_job" {
+  // <NOTES>
+  //
+  // Fires after every successful Apply or Destroy on a Module in this
+  // Namespace. The Agent reads the redacted logs + plan/apply summary + the
+  // approval record and writes an audit-quality, human-readable summary that
+  // appears on the Job's "Missions" tab in the Dashboard.
+  //
+  // Because the namespace contains the vpc / database / cluster / app modules
+  // declared above, every one of their successful jobs produces a Mission run
+  // automatically — no further wiring needed.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_mission
+  //
+  // </NOTES>
+
+  namespace_id = snapcd_namespace.sample.id
+  agent_id     = data.snapcd_agent.sample.id
+  mission_type = "SummarizeJob"
 }
 

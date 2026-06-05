@@ -27,6 +27,16 @@ variable "snapcd_server_url" {
 variable "runner_name" {
   default = "default"
 }
+variable "agent_name" {
+  default = "default"
+  // <NOTES>
+  // Pre-register the Agent in the Dashboard before applying this sample, and
+  // deploy at least one Instance via one of the reference deployments
+  // (https://github.com/schrieksoft/snapcd-deployment-docker etc.). The
+  // self-hosted preseed already creates an Agent named "default" — Cloud
+  // users create their own and set this var to its name.
+  // </NOTES>
+}
 variable "stack_name" {
   default = "default"
 }
