@@ -460,7 +460,7 @@ resource "snapcd_module_input_from_output_set" "app_params_from_database" {
 //
 // Learn about:
 // - snapcd_agent (as a data source — pre-registered in the Dashboard)
-// - snapcd_agent_namespace_assignment
+// - snapcd_agent_namespace_supply
 // - snapcd_namespace_mission (SummarizeJob / AutoDiagnose / ApprovalRecommend)
 //
 // Missions are AI-driven recipes that run automatically against Job events
@@ -496,11 +496,11 @@ data "snapcd_agent" "sample" {
   name = var.agent_name
 }
 
-resource "snapcd_agent_namespace_assignment" "sample" {
+resource "snapcd_agent_namespace_supply" "sample" {
   // <NOTES>
   //
   // Permits the Agent to handle Missions for any Module inside this Namespace.
-  // Mirrors the snapcd_runner_namespace_assignment pattern from section 2 —
+  // Mirrors the snapcd_runner_namespace_supply pattern from section 2 —
   // namespace-scoped permission so you only have to write this once even if
   // the namespace grows to many modules.
   //
