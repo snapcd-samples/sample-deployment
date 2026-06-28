@@ -17,8 +17,8 @@ variable "insecure_skip_verify" {
   // set to false if server has valid certifcate; e.g. if snapcd_server_url==https://snapcd.io
 }
 variable "snapcd_server_url" {
-  default = "http://localhost:8080"
-  // the URL if deploying with snapcd-selfhosted-deployment-docker is "http://localhost:8080", we use that as default here
+  default = "http://localhost:5000"
+  // the URL if deploying with snapcd-selfhosted-deployment-docker is "http://localhost:5000", we use that as default here
   // the URL if starting SnapCd.Server.Host C# project is https://localhost:20002 
   // the URL if making use of a SaaS subscription is https://snapcd.io
 }
