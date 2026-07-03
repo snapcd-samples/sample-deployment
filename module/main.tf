@@ -118,7 +118,6 @@ resource "snapcd_module" "vpc" {
   source_url               = "https://github.com/snapcd-samples/mock-module-vpc.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
-  // apply_approval_threshold = 1
 }
 
 resource "snapcd_module_hook" "vpc_init_before" {
@@ -207,8 +206,8 @@ resource "snapcd_module" "database" {
   // 
   // </NOTES>
 
-  // apply_approval_threshold = 1
-  // destroy_approval_threshold = 2
+  apply_approval_threshold   = 1
+  destroy_approval_threshold = 2
 }
 
 
