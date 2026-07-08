@@ -1,6 +1,6 @@
 // The default variables below are set to work out of the box with the pre-configured "snapcd-selfhosted-deployment-docker"
 
-// Needed to init provider
+//// Needed to init provider
 variable "client_id" {
   default = "default"
 }
@@ -18,24 +18,29 @@ variable "insecure_skip_verify" {
 }
 variable "snapcd_server_url" {
   default = "http://localhost:5000"
-  // the URL if deploying with snapcd-selfhosted-deployment-docker is "http://localhost:5000", we use that as default here
-  // the URL if starting SnapCd.Server.Host C# project is https://localhost:20002 
-  // the URL if making use of a SaaS subscription is https://snapcd.io
+  // The URL you use to reach the Snap CD Server from where you run `terraform apply`.
+  // - snapcd-deployment-docker: "http://localhost:5000"
+  // - SnapCd.Server.Host (C# project): "https://localhost:20002"
+  // - SaaS subscription: "https://snapcd.io"
 }
 
-// Passed into module
+
+//// Passed into module
+
+variable "snapcd_server_url_from_runner" {
+  default = "http://snapcd-server:5000"
+  // The URL the Runner uses to reach the Snap CD Server. This is used in the
+  // State Store backend config — Terraform runs inside the Runner container, so
+  // the URL must be reachable from there (e.g. a Docker network hostname).
+  // - snapcd-deployment-docker: "http://snapcd-server:5000"
+  // - SnapCd.Server.Host (C# project): "https://localhost:20002"
+  // - SaaS subscription: "https://snapcd.io"
+}
 variable "runner_name" {
   default = "default"
 }
 variable "agent_name" {
   default = "default"
-  // <NOTES>
-  // Pre-register the Agent in the Dashboard before applying this sample, and
-  // deploy at least one Instance via one of the reference deployments
-  // (https://github.com/schrieksoft/snapcd-deployment-docker etc.). The
-  // self-hosted preseed already creates an Agent named "default" — Cloud
-  // users create their own and set this var to its name.
-  // </NOTES>
 }
 variable "stack_name" {
   default = "default"

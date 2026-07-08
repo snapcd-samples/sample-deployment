@@ -13,6 +13,7 @@ vpc ---|                      | ---> app
 ```
 
 The following concepts are addressed in this guide:
+- **State Store Backend** - Configuring the built-in Snap CD State Store as an HTTP backend for all modules in a namespace via extra files, flags, and array flags
 - **Namespace Inputs** - Providing default inputs to all modules in a namespace via `snapcd_namespace_input_from_literal`
 - **Stack Secrets** - Using secured stored secrets with the `snapcd_module_input_from_secret` resource.
 - **Output Sets** - Passing all outputs from one module to another via `snapcd_module_input_from_output_set`
@@ -24,7 +25,8 @@ The following concepts are addressed in this guide:
 
 ## Prerequisites
 
-Before deploying this sample, complete the steps from the [Self-Hosted Quickstart Guide](https://docs.snapcd.io/quickstart/self-hosted).
+- **Snap CD 1.7.1 or later** (the State Store backend was introduced in this version)
+- Complete the steps from the [Self-Hosted Quickstart Guide](https://docs.snapcd.io/quickstart/self-hosted)
 
 ## Variables
 
@@ -129,10 +131,6 @@ This gives you a first-run, end-to-end exercise of all three Mission types witho
 
 ## A word on backends (state file storage)
 
-It is important to realise that Snap CD's goal is *orchestration* and that it therefore only stores data that supports that goal. It *does not* for example store your highly sensitive and business-critical state files; this remains fully in your control and is determined by the backend config your terrafom code uses. If no backend is configured (as is typically the case in a pure reusable module) terraform/opentofu will use a local state file. What this means in the context of Snap CD is that your Runner will store the state on its local storage. In this sample deployment, that is exactly what will happen. 
+Snap CD orchestrates your deployments but does not prescribe where you store your Terraform state. You can use any remote backend — AWS S3, Azure Storage, GCS, Terraform Cloud, or anything else Terraform supports. The only requirement is that you *do* use a remote backend: because Snap CD Runners are stateless and potentially ephemeral, relying on local state is not practical.
 
-If you only have one Runner in a single place and are happy to have the state files live there, then this approach is perfectly legitimate. However, the more robust approach is of course is to use remote backends, such as Azure Storage Accounts or AWS S3. How to configure remote backends is outside of the scope of this sample, except to mention that Snap CD offers a way to initialize vanilla modules (i.e. that have no backend configuration in them) with any backend of your choosing via [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Array Flags](https://docs.snapcd.io/how-it-works/configuration/flags/). Depending on your exact requirements, using one or more of the above resource types will allow you to inject any backend configuration you need into your modules.
-
-(As an aside note, [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/) and [Hooks](https://docs.snapcd.io/how-it-works/configuration/hooks/) are also quite useful for provider initialization).
-
-If you have completed this sample deployment and wish to explore [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/), [Array Flags](https://docs.snapcd.io/how-it-works/configuration/flags/), please see the [sample-deployment-azure-backed](https://github.com/snapcd-samples/sample-deployment-azure-backend) repository.
+This sample uses the built-in [State Store](https://docs.snapcd.io/resources/state-store/) that ships with every Snap CD installation. It provides encrypted, centrally managed state via Terraform's HTTP backend, configured entirely through Snap CD resources (see section 2 in `./module/main.tf`). If you prefer a different backend, replace that section with your own backend configuration using [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/) and [Array Flags](https://docs.snapcd.io/how-it-works/configuration/flags/).

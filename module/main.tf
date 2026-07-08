@@ -77,7 +77,145 @@ resource "snapcd_namespace_hook" "default_plan_before" {
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// 2. module "vpc"
+// 2. State Store Backend
+//
+// Learn about:
+// - snapcd_state_store (as a data source)
+// - snapcd_namespace_extra_file
+// - snapcd_namespace_terraform_flag
+// - snapcd_namespace_terraform_array_flag
+// - snapcd_namespace_input_from_definition
+//
+// These resources configure the Snap CD State Store as the Terraform HTTP
+// backend for all modules in the namespace. This replaces the default local
+// state with encrypted, centrally managed state stored in Snap CD.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+
+data "snapcd_state_store" "default" {
+  // <NOTES>
+  //
+  // Looks up the built-in "default" State Store by name. Every Snap CD
+  // organization is pre-seeded with a default State Store that provides
+  // encrypted, centrally managed Terraform state via an HTTP backend.
+  //
+  // We reference its ID below when constructing the backend URLs.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/data-sources/state_store
+  //
+  // </NOTES>
+
+  name = "default"
+}
+
+resource "snapcd_namespace_extra_file" "http_backend" {
+  // <NOTES>
+  //
+  // Injects an extra .tf file into every module in this namespace. Here we use
+  // it to declare the HTTP backend block. The Runner writes this file into the
+  // working directory before `terraform init` runs.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_extra_file
+  //
+  // </NOTES>
+
+  file_name    = "extra_root.tf"
+  contents     = <<EOT
+terraform {
+  backend "http" {}
+}
+  EOT
+  namespace_id = snapcd_namespace.sample.id
+  overwrite    = false
+}
+
+resource "snapcd_namespace_terraform_flag" "upgrade" {
+  // <NOTES>
+  //
+  // Adds the `-upgrade` flag to `terraform init` for every module in this
+  // namespace. This automatically updates providers and modules to the latest
+  // versions allowed by version constraints on every init.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_terraform_flag
+  //
+  // </NOTES>
+
+  namespace_id = snapcd_namespace.sample.id
+  task         = "Init"
+  flag         = "Upgrade"
+}
+
+resource "snapcd_namespace_input_from_definition" "module_name" {
+  // <NOTES>
+  //
+  // Injects the module's own name as the environment variable SNAPCD_MODULE_NAME.
+  // "Definition" inputs resolve built-in metadata at deploy time (here,
+  // "ModuleName" resolves to the name of whichever module is currently running).
+  //
+  // We use this env var in the backend URLs below so that each module's state is
+  // stored under its own path in the State Store.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_input_from_definition
+  //
+  // </NOTES>
+
+  name            = "SNAPCD_MODULE_NAME"
+  definition_name = "ModuleName"
+  usage_mode      = "UseByDefault"
+  namespace_id    = snapcd_namespace.sample.id
+  input_kind      = "EnvVar"
+}
+
+resource "snapcd_namespace_terraform_array_flag" "http_backend" {
+  // <NOTES>
+  //
+  // Passes `-backend-config=key=value` arguments to `terraform init` for every
+  // module in this namespace. Together these configure the HTTP backend to point
+  // at the Snap CD State Store API.
+  //
+  // Note: these URLs use var.snapcd_server_url_from_runner (not
+  // var.snapcd_server_url) because Terraform runs inside the Runner container,
+  // which may reach the Server via a different hostname (e.g. a Docker network
+  // name) than the machine where you run `terraform apply`.
+  //
+  // $${SNAPCD_MODULE_NAME} comes from the namespace_input_from_definition above,
+  // which injects the current module's name as an environment variable at deploy
+  // time. $${SNAPCD_CLIENT_ID} and $${SNAPCD_CLIENT_SECRET} are configured in
+  // the Runner's appsettings.json under "RunnerEnvVars" — the example
+  // deployments (Docker, Kubernetes, local) set these to "default".
+  //
+  // The double-dollar escapes Terraform interpolation so the literal ${…} is
+  // preserved in the output.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_terraform_array_flag
+  //
+  // </NOTES>
+
+  for_each = {
+    address        = "${var.snapcd_server_url_from_runner}/api/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}"
+    lock_address   = "${var.snapcd_server_url_from_runner}/api/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/lock"
+    unlock_address = "${var.snapcd_server_url_from_runner}/api/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/unlock"
+    lock_method    = "POST"
+    unlock_method  = "POST"
+    username       = "${var.organization_id}:$${SNAPCD_CLIENT_ID}"
+    password       = "$${SNAPCD_CLIENT_SECRET}"
+  }
+  namespace_id = snapcd_namespace.sample.id
+  task         = "Init"
+  flag         = "BackendConfig"
+  value        = "${each.key}=${each.value}"
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// 3. module "vpc"
 //
 // Learn about:
 // - snapcd_module
@@ -178,7 +316,7 @@ resource "snapcd_module_input_from_literal" "env_vars" {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 3. module "database"
+// 4. module "database"
 //
 // Learn about:
 // - snapcd_module_input_from_output
@@ -247,7 +385,7 @@ resource "snapcd_module_input_from_literal" "database_params" {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 4. module "cluster"
+// 5. module "cluster"
 //
 // Learn about:
 // - snapcd_module_input_from_output_set
@@ -345,7 +483,7 @@ resource "snapcd_module_hook" "cluster_apply_after" {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 5. module "app"
+// 6. module "app"
 //
 // Learn about:
 // - snapcd_module_input_from_secret
@@ -455,7 +593,7 @@ resource "snapcd_module_input_from_output_set" "app_params_from_database" {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 6. Agent & Missions
+// 7. Agent & Missions
 //
 // Learn about:
 // - snapcd_agent (as a data source — pre-registered in the Dashboard)

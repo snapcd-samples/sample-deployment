@@ -1,9 +1,11 @@
 module "sample" {
-  source                   = "./module"
-  stack_name               = var.stack_name
-  runner_name              = var.runner_name
-  agent_name               = var.agent_name
-  sample_stack_secret_name = var.sample_stack_secret_name
-  namespace_name           = var.namespace_name
+  source                        = "./module"
+  stack_name                    = var.stack_name
+  runner_name                   = var.runner_name
+  agent_name                    = var.agent_name
+  sample_stack_secret_name      = var.sample_stack_secret_name
+  namespace_name                = var.namespace_name
+  snapcd_server_url_from_runner = var.snapcd_server_url_from_runner
+  organization_id               = var.organization_id
 }
 
