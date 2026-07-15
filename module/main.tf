@@ -149,6 +149,25 @@ resource "snapcd_namespace_terraform_flag" "upgrade" {
   flag         = "Upgrade"
 }
 
+resource "snapcd_namespace_terraform_flag" "migrate_state" {
+  // <NOTES>
+  //
+  // Adds the `-migrate-state` flag to `terraform init` for every module in this
+  // namespace. If a module previously used a different backend (e.g. the default
+  // local state), this tells Terraform to copy the existing state into the
+  // Snap CD State Store configured below instead of failing on the backend
+  // change.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_terraform_flag
+  //
+  // </NOTES>
+
+  namespace_id = snapcd_namespace.sample.id
+  task         = "Init"
+  flag         = "MigrateState"
+}
+
 resource "snapcd_namespace_input_from_definition" "module_name" {
   // <NOTES>
   //
@@ -507,7 +526,7 @@ data "snapcd_stack_secret" "storefront_db_user_password" {
   //
   // This is a secret that has been set on the "stack", meaning all modules in the stack have access to it. (secrets can also 
   // be set on "namespace" or "module"). secrets can be read by the Terraform provider as data sources, but creating them
-  // must be done manually via the snapcd.io portal, e.g. here: https://snapcd.io/stacks/samples?action=secrets
+  // must be done manually via the snapcd.io portal, e.g. here: https://snapcd.io/stack/samples?action=secrets
   // 
   // For more detail, see:
   // - https://docs.snapcd.io/how-it-works/configuration/secrets/
