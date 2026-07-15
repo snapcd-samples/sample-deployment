@@ -85,7 +85,7 @@ terraform apply
 
 ## See it in action
 
-Now navigate to http://localhost:8080/Namespace/default/my-sample-namespace?action=DependencyGraph (or to https://snapcd.io/Namespace/default/my-sample-namespace?action=DependencyGraph if using Snap CD Cloud) and see the dependency graph resolve.
+Now navigate to http://localhost:5000/Namespace/default/my-sample-namespace?action=DependencyGraph (or to https://snapcd.io/Namespace/default/my-sample-namespace?action=DependencyGraph if using Snap CD Cloud) and see the dependency graph resolve.
 
 
 ## Agents and Missions
