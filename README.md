@@ -2,7 +2,7 @@
 
 This sample demonstrates a sample deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs).
 
-In the root of this repo is a terraform project that you can run with `terraform init`, `terraform apply` and so forth. Within `./module/main.tf` you'll find the actual `snapcd_...` resources that will be created. These are in numbered sections, meant as a guide for the order in which you should read through them, as each subsequent one introduces a new resource type. You will find extensive comments that explain the thinking behind each of the resources.
+In the root of this repo is an OpenTofu project that you can run with `tofu init`, `tofu apply` and so forth. Within `./module/main.tf` you'll find the actual `snapcd_...` resources that will be created. These are in numbered sections, meant as a guide for the order in which you should read through them, as each subsequent one introduces a new resource type. You will find extensive comments that explain the thinking behind each of the resources.
 
 The Snap CD resources you will be creating will in turn manage four modules with mock resources (we will not actually be deploying a vpc etc.):
 
@@ -20,30 +20,34 @@ The following concepts are addressed in this guide:
 - **Single Output** - Passing a specific output via `snapcd_module_input_from_output`
 - **Non-String Types** - Using `type = "NotString"` for numeric values (e.g., replicas)
 - **Environment Variables** - Passing env vars to module execution
-- **Agents and Missions** - Attaching AI-driven `SummarizeJob` / `AutoDiagnose` / `ApprovalRecommend` recipes to every Job in the Namespace via `snapcd_namespace_mission`
+- **Agents and Missions** - Attaching an AI-driven `SummarizeJob` recipe to every Job in the Namespace via `snapcd_namespace_mission`
 
 
 ## Prerequisites
 
+- **OpenTofu** — the sample is driven entirely with `tofu` commands, and every module sets `engine = "OpenTofu"`. The `tofu` binary must be installed both on the machine where you run this project and on the Runner (the Docker reference deployment mounts it from the host, see its `components/runner/docker-compose.yml`).
 - **Snap CD 1.7.1 or later** (the State Store backend was introduced in this version)
 - Complete the steps from the [Self-Hosted Quickstart Guide](https://docs.snapcd.io/quickstart/self-hosted)
 
 ## Variables
 
-This deployment requires the following variables:
+Every variable has a default that works out of the box with the pre-configured `snapcd-selfhosted-deployment-docker` setup — with that deployment running you can apply this sample without setting anything. Override whichever of these differ in your environment:
 
-| Variable | Description | How to Obtain |
-|----------|-------------|---------------|
-| `client_id` | The Client ID for authentication | From your Service Principal or personal access token settings |
-| `client_secret` | The Client Secret for authentication (sensitive) | Generated when creating your Service Principal or personal access token |
-| `organization_id` | Your Snap CD Organization ID | Found in your organization settings |
-| `runner_name` | The name of your registered Runner | The name you gave your Runner when registering it |
-| `agent_name` | The name of your registered Agent | The name you gave your Agent when registering it (see [Agents and Missions](#agents-and-missions) below) |
-| `stack_name` | The name of the Stack to deploy to | The name of the Stack you created (e.g., "samples") |
-| `sample_stack_secret_name` | Name of a Stack Secret with any sample value | The name you gave the secret when creating it |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `client_id` | The Client ID for authentication | `default` |
+| `client_secret` | The Client Secret for authentication (sensitive) | `default` |
+| `organization_id` | Your Snap CD Organization ID | `10000000-0000-0000-0000-000000000000` (the pre-seeded Organization) |
+| `snapcd_server_url` | Server URL as reachable from where you run `tofu apply` | `http://localhost:5000` |
+| `snapcd_server_url_from_runner` | Server URL as reachable from inside the Runner (used in the modules' State Store backend config) | `http://snapcd-server:5000` |
+| `insecure_skip_verify` | Skip TLS verification (set `false` when the server has a valid certificate) | `true` |
+| `runner_name` | The name of your registered Runner | `default` |
+| `agent_name` | The name of your registered Agent (see [Agents and Missions](#agents-and-missions) below) | `default` |
+| `stack_name` | The name of the Stack to deploy to | `default` |
+| `namespace_name` | The name of the Namespace this sample creates | `my-sample-namespace` |
+| `sample_stack_secret_name` | Name of a Stack Secret with any sample value | `sample` |
 
-
-To set the variables, create a `terraform.tfvars` file:
+To override variables, create a `terraform.tfvars` file:
 
 ```hcl
 client_id                  = "your-client-id"
@@ -70,17 +74,23 @@ export TF_VAR_sample_stack_secret_name="my-secret-name"
 
 ## Usage
 
-Once you have created to `terraform.tfvars` file and are ready to start deploying, us the usual terraform commands, e.g:
+Once you have created the `terraform.tfvars` file and are ready to start deploying, use the usual OpenTofu commands, e.g:
 
 ```bash
-# Initialize Terraform
-terraform init
+# Initialize OpenTofu
+tofu init
 
 # Preview changes
-terraform plan
+tofu plan
 
 # Apply changes
-terraform apply
+tofu apply
+```
+
+This project's own state is stored in the Snap CD State Store (see the `backend "http"` block in `root.tf`), not in a local `terraform.tfstate` file. The backend defaults match the `snapcd-selfhosted-deployment-docker` setup; if your server URL or credentials differ, override them at init time with `-backend-config` flags (examples in `root.tf`). If you previously applied this sample with local state, migrate it into the State Store with:
+
+```bash
+tofu init -migrate-state
 ```
 
 ## See it in action
@@ -90,7 +100,7 @@ Now navigate to http://localhost:5000/Namespace/default/my-sample-namespace?acti
 
 ## Agents and Missions
 
-Section 6 (`./module/missions.tf`) attaches an Agent and three Missions to the sample Namespace. **Missions** are AI-driven recipes that run automatically against Job events, alongside the normal Terraform lifecycle:
+Section 7 in `./module/main.tf` attaches an Agent and a Mission to the sample Namespace. **Missions** are AI-driven recipes that run automatically against Job events, alongside the normal OpenTofu lifecycle:
 
 | Mission | Triggers when… | What it produces |
 |---------|----------------|------------------|
@@ -102,7 +112,7 @@ Each Mission runs inside an **Agent** that you host yourself (the AI control pla
 
 ### Prerequisites
 
-Before `terraform apply` can succeed, you must:
+Before `tofu apply` can succeed, you must:
 
 1. **Register the Agent** in the Dashboard (Self-Hosted: `<your-server>/Agents`; Cloud: <https://snapcd.io/Agents>). Name it, attach a Service Principal, and note the name — that's the value of `agent_name` in your `tfvars`.
    - Self-Hosted defaults: the seed includes an Agent named `default` with a matching `defaultAgent` Service Principal; the sample's variable defaults already point at it, so you don't need to do anything extra.
@@ -115,22 +125,20 @@ Before `terraform apply` can succeed, you must:
 
 ### Watching the missions execute
 
-After `terraform apply` finishes, navigate to your Namespace and watch the modules go through their lifecycles. On every Module's Job, a **Missions** tab appears next to the **Logs** and **Approvals** tabs — that's where each Mission's output lands.
+After `tofu apply` finishes, navigate to your Namespace and watch the modules go through their lifecycles. On every Module's Job, a **Missions** tab appears next to the **Logs** and **Approvals** tabs — that's where each Mission's output lands.
 
 A guided tour using the modules already declared above:
 
-- The **`vpc`** Module points at the `fails` git branch and has `apply_approval_threshold = 1`. So its first Job will:
-  1. Plan successfully → enter `WaitingForApproval` → **`ApprovalRecommend`** runs and writes a recommendation.
-  2. Whether you approve or decline:
-     - **Approve** → Apply runs → fails (the branch is broken on purpose) → **`AutoDiagnose`** runs against the failure.
-     - **Decline** → Job ends as `NotApproved` → **`AutoDiagnose`** also runs (a declined approval is treated as a non-success terminal state).
-- The **`database`**, **`cluster`**, and **`app`** Modules apply cleanly, so each one's Apply Job produces a **`SummarizeJob`** Mission with the human-readable summary.
-
-This gives you a first-run, end-to-end exercise of all three Mission types without any extra setup.
+- The **`database`** Module has `apply_approval_threshold = 1`, so its first Job plans and then waits in `WaitingForApproval` until you approve it in the Dashboard. (Its `destroy_approval_threshold = 2` means a destroy would need approvals from two separate principals.)
+- All four modules apply cleanly, and the namespace attaches a **`SummarizeJob`** Mission (section 7 in `./module/main.tf`), so every successful Apply produces a human-readable summary on the Job's **Missions** tab.
+- To see the other two Mission types, add `snapcd_namespace_mission` resources with `mission_type = "ApprovalRecommend"` and `"AutoDiagnose"` alongside `summarize_job`: `ApprovalRecommend` writes a recommendation while `database` waits for approval, and `AutoDiagnose` runs whenever a Job fails, is cancelled, or has its approval declined.
 
 
 ## A word on backends (state file storage)
 
-Snap CD orchestrates your deployments but does not prescribe where you store your Terraform state. You can use any remote backend — AWS S3, Azure Storage, GCS, Terraform Cloud, or anything else Terraform supports. The only requirement is that you *do* use a remote backend: because Snap CD Runners are stateless and potentially ephemeral, relying on local state is not practical.
+Snap CD orchestrates your deployments but does not prescribe where you store your Terraform / OpenTofu state. You can use any remote backend — AWS S3, Azure Storage, GCS, or anything else your engine supports. The only requirement is that you *do* use a remote backend: because Snap CD Runners are stateless and potentially ephemeral, relying on local state is not practical.
 
-This sample uses the built-in [State Store](https://docs.snapcd.io/resources/state-store/) that ships with every Snap CD installation. It provides encrypted, centrally managed state via Terraform's HTTP backend, configured entirely through Snap CD resources (see section 2 in `./module/main.tf`). If you prefer a different backend, replace that section with your own backend configuration using [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/) and [Array Flags](https://docs.snapcd.io/how-it-works/configuration/flags/).
+This sample uses the built-in [State Store](https://docs.snapcd.io/resources/state-store/) that ships with every Snap CD installation, in two places:
+
+1. **The modules deployed by Snap CD** — section 2 in `./module/main.tf` configures the State Store as the HTTP backend for every module in the namespace, entirely through Snap CD resources. If you prefer a different backend, replace that section with your own backend configuration using [Extra Files](https://docs.snapcd.io/how-it-works/configuration/extra-files/) and [Array Flags](https://docs.snapcd.io/how-it-works/configuration/flags/).
+2. **This OpenTofu project itself** — the `backend "http"` block in `root.tf` stores the sample deployment's own state in the State Store too (under the state file name `sample-deployment`), so nothing is kept on your local disk.

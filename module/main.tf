@@ -26,9 +26,10 @@ resource "snapcd_namespace" "sample" {
   // </NOTES>
 
 
-  name     = var.namespace_name
-  stack_id = data.snapcd_stack.sample.id
+  name                          = var.namespace_name
+  stack_id                      = data.snapcd_stack.sample.id
   trigger_behaviour_on_modified = "TriggerAllImmediately"
+  default_engine                = "OpenTofu"
 }
 
 resource "snapcd_namespace_input_from_literal" "sample" {
@@ -86,7 +87,7 @@ resource "snapcd_namespace_hook" "default_plan_before" {
 // - snapcd_namespace_terraform_array_flag
 // - snapcd_namespace_input_from_definition
 //
-// These resources configure the Snap CD State Store as the Terraform HTTP
+// These resources configure the Snap CD State Store as the OpenTofu HTTP
 // backend for all modules in the namespace. This replaces the default local
 // state with encrypted, centrally managed state stored in Snap CD.
 //
@@ -98,7 +99,7 @@ data "snapcd_state_store" "default" {
   //
   // Looks up the built-in "default" State Store by name. Every Snap CD
   // organization is pre-seeded with a default State Store that provides
-  // encrypted, centrally managed Terraform state via an HTTP backend.
+  // encrypted, centrally managed Terraform / OpenTofu state via an HTTP backend.
   //
   // We reference its ID below when constructing the backend URLs.
   //
@@ -115,7 +116,7 @@ resource "snapcd_namespace_extra_file" "http_backend" {
   //
   // Injects an extra .tf file into every module in this namespace. Here we use
   // it to declare the HTTP backend block. The Runner writes this file into the
-  // working directory before `terraform init` runs.
+  // working directory before `tofu init` runs.
   //
   // For more detail, see:
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_extra_file
@@ -135,7 +136,7 @@ terraform {
 resource "snapcd_namespace_terraform_flag" "upgrade" {
   // <NOTES>
   //
-  // Adds the `-upgrade` flag to `terraform init` for every module in this
+  // Adds the `-upgrade` flag to `tofu init` for every module in this
   // namespace. This automatically updates providers and modules to the latest
   // versions allowed by version constraints on every init.
   //
@@ -152,9 +153,9 @@ resource "snapcd_namespace_terraform_flag" "upgrade" {
 resource "snapcd_namespace_terraform_flag" "migrate_state" {
   // <NOTES>
   //
-  // Adds the `-migrate-state` flag to `terraform init` for every module in this
+  // Adds the `-migrate-state` flag to `tofu init` for every module in this
   // namespace. If a module previously used a different backend (e.g. the default
-  // local state), this tells Terraform to copy the existing state into the
+  // local state), this tells OpenTofu to copy the existing state into the
   // Snap CD State Store configured below instead of failing on the backend
   // change.
   //
@@ -193,14 +194,14 @@ resource "snapcd_namespace_input_from_definition" "module_name" {
 resource "snapcd_namespace_terraform_array_flag" "http_backend" {
   // <NOTES>
   //
-  // Passes `-backend-config=key=value` arguments to `terraform init` for every
+  // Passes `-backend-config=key=value` arguments to `tofu init` for every
   // module in this namespace. Together these configure the HTTP backend to point
   // at the Snap CD State Store API.
   //
   // Note: these URLs use var.snapcd_server_url_from_runner (not
-  // var.snapcd_server_url) because Terraform runs inside the Runner container,
+  // var.snapcd_server_url) because OpenTofu runs inside the Runner container,
   // which may reach the Server via a different hostname (e.g. a Docker network
-  // name) than the machine where you run `terraform apply`.
+  // name) than the machine where you run `tofu apply`.
   //
   // $${SNAPCD_MODULE_NAME} comes from the namespace_input_from_definition above,
   // which injects the current module's name as an environment variable at deploy
@@ -275,6 +276,7 @@ resource "snapcd_module" "vpc" {
   source_url               = "https://github.com/snapcd-samples/mock-module-vpc.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
+  engine                   = "OpenTofu"
 }
 
 resource "snapcd_module_hook" "vpc_init_before" {
@@ -351,6 +353,7 @@ resource "snapcd_module" "database" {
   source_url               = "https://github.com/snapcd-samples/mock-module-database.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
+  engine                   = "OpenTofu"
 
   // <NOTES>
   // By setting "apply_approval_threshold = 1" here, Snap CD will pause on a plan that would result in any changes. It will wait
@@ -420,6 +423,7 @@ resource "snapcd_module" "cluster" {
   source_url               = "https://github.com/snapcd-samples/mock-module-kubernetes-cluster.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
+  engine                   = "OpenTofu"
 
 }
 
@@ -517,6 +521,7 @@ resource "snapcd_module" "app" {
   source_url               = "https://github.com/snapcd-samples/mock-module-kubernetes-app-storefront.git"
   source_subdirectory      = ""
   runner_id                = data.snapcd_runner.sample.id
+  engine                   = "OpenTofu"
 
 }
 
@@ -562,7 +567,7 @@ resource "snapcd_module_input_from_literal" "app_params_notstring" {
   // <NOTES>
   //
   // This is another "literal" input into the above module. Note that it uses a type "NotString". This is relevant when you need to 
-  // pass in values like numbers as terraform variables.
+  // pass in values like numbers as tofu variables.
   // "NotString" means: replicas=3
   // "String"    means: replicas="3"
   // 
@@ -634,7 +639,7 @@ resource "snapcd_module_input_from_output_set" "app_params_from_database" {
 data "snapcd_agent" "sample" {
   // <NOTES>
   //
-  // The Agent itself must already exist before this `terraform apply` runs.
+  // The Agent itself must already exist before this `tofu apply` runs.
   // Register one via the Dashboard at https://snapcd.io/Agents (Cloud) or your
   // Self-Hosted Server's `/Agents` page — name it, attach a Service Principal,
   // and deploy at least one Instance using one of the reference deployments

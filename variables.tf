@@ -18,7 +18,7 @@ variable "insecure_skip_verify" {
 }
 variable "snapcd_server_url" {
   default = "http://localhost:5000"
-  // The URL you use to reach the Snap CD Server from where you run `terraform apply`.
+  // The URL you use to reach the Snap CD Server from where you run `tofu apply`.
   // - snapcd-deployment-docker: "http://localhost:5000"
   // - SnapCd.Server.Host (C# project): "https://localhost:20002"
   // - SaaS subscription: "https://snapcd.io"
@@ -30,7 +30,7 @@ variable "snapcd_server_url" {
 variable "snapcd_server_url_from_runner" {
   default = "http://snapcd-server:5000"
   // The URL the Runner uses to reach the Snap CD Server. This is used in the
-  // State Store backend config — Terraform runs inside the Runner container, so
+  // State Store backend config — OpenTofu runs inside the Runner container, so
   // the URL must be reachable from there (e.g. a Docker network hostname).
   // - snapcd-deployment-docker: "http://snapcd-server:5000"
   // - SnapCd.Server.Host (C# project): "https://localhost:20002"
