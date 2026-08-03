@@ -279,6 +279,43 @@ resource "snapcd_module" "vpc" {
   engine                   = "OpenTofu"
 }
 
+resource "snapcd_module_terraform_inline_policy" "vpc_no_public_acls" {
+  // <NOTES>
+  //
+  // This is a "policy". It validates what the "vpc" module's plan is allowed to contain before it
+  // is applied (or destroyed): rules named "deny" or "violation" refuse the job, rules named "warn"
+  // record a warning and let it continue. The policy is written in OPA/Rego and evaluated with
+  // conftest against the JSON export of the plan — the same conventions used by conftest in CI, so
+  // existing policy repos work unchanged. This one passes as long as no S3 bucket in the plan
+  // allows public ACLs.
+  //
+  // For more detail, see:
+  // - https://docs.snapcd.io/resources/policies/
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_terraform_inline_policy
+  //
+  // </NOTES>
+
+  name      = "no-public-acls"
+  module_id = snapcd_module.vpc.id
+
+  policy_content = <<-EOF
+    package terraform.security
+
+    import rego.v1
+
+    deny contains msg if {
+      some r in input.resource_changes
+
+      r.type == "aws_s3_bucket_public_access_block"
+      r.change.after != null
+
+      not r.change.after.block_public_acls
+
+      msg := sprintf("%s allows public ACLs", [r.address])
+    }
+  EOF
+}
+
 resource "snapcd_module_hook" "vpc_init_before" {
   // <NOTES>
   //
