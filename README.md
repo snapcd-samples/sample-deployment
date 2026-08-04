@@ -21,12 +21,13 @@ The following concepts are addressed in this guide:
 - **Non-String Types** - Using `type = "NotString"` for numeric values (e.g., replicas)
 - **Environment Variables** - Passing env vars to module execution
 - **Agents and Missions** - Attaching an AI-driven `SummarizeJob` recipe to every Job in the Namespace via `snapcd_namespace_mission`
+- **Policies** - Gating what a plan may contain before it is applied, via `snapcd_module_terraform_inline_policy`
 
 
 ## Prerequisites
 
 - **OpenTofu** — the sample is driven entirely with `tofu` commands, and every module sets `engine = "OpenTofu"`. The `tofu` binary must be installed both on the machine where you run this project and on the Runner (the Docker reference deployment mounts it from the host, see its `components/runner/docker-compose.yml`).
-- **Snap CD 1.7.1 or later** (the State Store backend was introduced in this version)
+- **Snap CD 1.11.0 or later** (Policy as Code was introduced in this version; the State Store backend used throughout requires 1.7.1)
 - Complete the steps from the [Self-Hosted Quickstart Guide](https://docs.snapcd.io/quickstart/self-hosted)
 
 ## Variables

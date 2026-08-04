@@ -218,12 +218,12 @@ resource "snapcd_namespace_terraform_array_flag" "http_backend" {
   // </NOTES>
 
   for_each = {
-    address        = "${var.snapcd_server_url_from_runner}/api/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}"
-    lock_address   = "${var.snapcd_server_url_from_runner}/api/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/lock"
-    unlock_address = "${var.snapcd_server_url_from_runner}/api/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/unlock"
+    address        = "${var.snapcd_server_url_from_runner}/api/${var.organization_id}/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}"
+    lock_address   = "${var.snapcd_server_url_from_runner}/api/${var.organization_id}/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/lock"
+    unlock_address = "${var.snapcd_server_url_from_runner}/api/${var.organization_id}/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/unlock"
     lock_method    = "POST"
     unlock_method  = "POST"
-    username       = "${var.organization_id}:$${SNAPCD_CLIENT_ID}"
+    username       = "$${SNAPCD_CLIENT_ID}"
     password       = "$${SNAPCD_CLIENT_SECRET}"
   }
   namespace_id = snapcd_namespace.sample.id
@@ -270,50 +270,13 @@ resource "snapcd_module" "vpc" {
   //
   // </NOTES>
 
-  name                     = "vpc"
-  namespace_id             = snapcd_namespace.sample.id
-  source_revision          = "main"
-  source_url               = "https://github.com/snapcd-samples/mock-module-vpc.git"
-  source_subdirectory      = ""
-  runner_id                = data.snapcd_runner.sample.id
-  engine                   = "OpenTofu"
-}
-
-resource "snapcd_module_terraform_inline_policy" "vpc_no_public_acls" {
-  // <NOTES>
-  //
-  // This is a "policy". It validates what the "vpc" module's plan is allowed to contain before it
-  // is applied (or destroyed): rules named "deny" or "violation" refuse the job, rules named "warn"
-  // record a warning and let it continue. The policy is written in OPA/Rego and evaluated with
-  // conftest against the JSON export of the plan — the same conventions used by conftest in CI, so
-  // existing policy repos work unchanged. This one passes as long as no S3 bucket in the plan
-  // allows public ACLs.
-  //
-  // For more detail, see:
-  // - https://docs.snapcd.io/resources/policies/
-  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_terraform_inline_policy
-  //
-  // </NOTES>
-
-  name      = "no-public-acls"
-  module_id = snapcd_module.vpc.id
-
-  policy_content = <<-EOF
-    package terraform.security
-
-    import rego.v1
-
-    deny contains msg if {
-      some r in input.resource_changes
-
-      r.type == "aws_s3_bucket_public_access_block"
-      r.change.after != null
-
-      not r.change.after.block_public_acls
-
-      msg := sprintf("%s allows public ACLs", [r.address])
-    }
-  EOF
+  name                = "vpc"
+  namespace_id        = snapcd_namespace.sample.id
+  source_revision     = "main"
+  source_url          = "https://github.com/snapcd-samples/mock-module-vpc.git"
+  source_subdirectory = ""
+  runner_id           = data.snapcd_runner.sample.id
+  engine              = "OpenTofu"
 }
 
 resource "snapcd_module_hook" "vpc_init_before" {
@@ -378,19 +341,20 @@ resource "snapcd_module_input_from_literal" "env_vars" {
 //
 // Learn about:
 // - snapcd_module_input_from_output
+// - snapcd_module_terraform_inline_policy
 //
 ///////////////////////////////////////////////////////////////////////////////
 
 
 
 resource "snapcd_module" "database" {
-  name                     = "database"
-  namespace_id             = snapcd_namespace.sample.id
-  source_revision          = "main"
-  source_url               = "https://github.com/snapcd-samples/mock-module-database.git"
-  source_subdirectory      = ""
-  runner_id                = data.snapcd_runner.sample.id
-  engine                   = "OpenTofu"
+  name                = "database"
+  namespace_id        = snapcd_namespace.sample.id
+  source_revision     = "main"
+  source_url          = "https://github.com/snapcd-samples/mock-module-database.git"
+  source_subdirectory = ""
+  runner_id           = data.snapcd_runner.sample.id
+  engine              = "OpenTofu"
 
   // <NOTES>
   // By setting "apply_approval_threshold = 1" here, Snap CD will pause on a plan that would result in any changes. It will wait
@@ -404,7 +368,58 @@ resource "snapcd_module" "database" {
   // </NOTES>
 
   apply_approval_threshold   = 1
-  destroy_approval_threshold = 2
+  destroy_approval_threshold = 1
+}
+
+resource "snapcd_module_terraform_inline_policy" "database_no_public_acls" {
+  // <NOTES>
+  //
+  // Requires Snap CD 1.11.0 or later.
+  //
+  // This is a "policy". It validates what the "database" module's plan is allowed to contain before
+  // it is applied (or destroyed): rules named "deny" or "violation" refuse the job, rules named
+  // "warn" record a warning and let it continue. The policy is written in OPA/Rego and evaluated
+  // with conftest against the JSON export of the plan — the same conventions used by conftest in
+  // CI, so existing policy repos work unchanged.
+  //
+  // The "deny" rule refuses any plan in which an S3 bucket allows public ACLs. The "warn" rule
+  // flags every resource the plan would create — and because this module has an approval threshold,
+  // those warnings surface as a "Policy warnings" chip on the Approvals screen (with a link into
+  // the policy logs) so the approver sees them before granting approval.
+  //
+  // For more detail, see:
+  // - https://docs.snapcd.io/resources/policies/
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/module_terraform_inline_policy
+  //
+  // </NOTES>
+
+  name      = "no-public-acls"
+  module_id = snapcd_module.database.id
+
+  policy_content = <<-EOF
+    package terraform.security
+
+    import rego.v1
+
+    deny contains msg if {
+      some r in input.resource_changes
+
+      r.type == "aws_s3_bucket_public_access_block"
+      r.change.after != null
+
+      not r.change.after.block_public_acls
+
+      msg := sprintf("%s allows public ACLs", [r.address])
+    }
+
+    warn contains msg if {
+      some r in input.resource_changes
+
+      "create" in r.change.actions
+
+      msg := sprintf("%s will be created", [r.address])
+    }
+  EOF
 }
 
 
@@ -454,13 +469,13 @@ resource "snapcd_module_input_from_literal" "database_params" {
 
 
 resource "snapcd_module" "cluster" {
-  name                     = "cluster"
-  namespace_id             = snapcd_namespace.sample.id
-  source_revision          = "main"
-  source_url               = "https://github.com/snapcd-samples/mock-module-kubernetes-cluster.git"
-  source_subdirectory      = ""
-  runner_id                = data.snapcd_runner.sample.id
-  engine                   = "OpenTofu"
+  name                = "cluster"
+  namespace_id        = snapcd_namespace.sample.id
+  source_revision     = "main"
+  source_url          = "https://github.com/snapcd-samples/mock-module-kubernetes-cluster.git"
+  source_subdirectory = ""
+  runner_id           = data.snapcd_runner.sample.id
+  engine              = "OpenTofu"
 
 }
 
@@ -508,9 +523,9 @@ resource "snapcd_module_terraform_flag" "upgrade" {
   //
   // </NOTES>
 
-  module_id        = snapcd_module.cluster.id
-  task             = "Init"
-  flag             = "Upgrade"
+  module_id = snapcd_module.cluster.id
+  task      = "Init"
+  flag      = "Upgrade"
 }
 
 resource "snapcd_module_hook" "cluster_apply_before" {
@@ -552,18 +567,18 @@ resource "snapcd_module_hook" "cluster_apply_after" {
 
 
 resource "snapcd_module" "app" {
-  name                     = "app"
-  namespace_id             = snapcd_namespace.sample.id
-  source_revision          = "main"
-  source_url               = "https://github.com/snapcd-samples/mock-module-kubernetes-app-storefront.git"
-  source_subdirectory      = ""
-  runner_id                = data.snapcd_runner.sample.id
-  engine                   = "OpenTofu"
+  name                = "app"
+  namespace_id        = snapcd_namespace.sample.id
+  source_revision     = "main"
+  source_url          = "https://github.com/snapcd-samples/mock-module-kubernetes-app-storefront.git"
+  source_subdirectory = ""
+  runner_id           = data.snapcd_runner.sample.id
+  engine              = "OpenTofu"
 
 }
 
 
-data "snapcd_stack_secret" "storefront_db_user_password" {  
+data "snapcd_stack_secret" "storefront_db_user_password" {
   // <NOTES>
   //
   // This is a secret that has been set on the "stack", meaning all modules in the stack have access to it. (secrets can also 
@@ -574,7 +589,7 @@ data "snapcd_stack_secret" "storefront_db_user_password" {
   // - https://docs.snapcd.io/how-it-works/configuration/secrets/
   // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/data-sources/stack_secret
   // </NOTES>
-  name     = var.sample_stack_secret_name 
+  name     = var.sample_stack_secret_name
   stack_id = data.snapcd_stack.sample.id
 }
 
@@ -623,7 +638,7 @@ resource "snapcd_module_input_from_literal" "app_params_notstring" {
 
 resource "snapcd_module_input_from_literal" "app_params_string" {
   for_each = {
-    app_url = "https://storefront.demo.com"
+    app_url            = "https://storefront.demo.com"
     database_user_name = "some-user"
   }
   input_kind    = "Param"
