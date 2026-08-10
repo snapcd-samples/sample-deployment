@@ -29,14 +29,13 @@ terraform {
   // If your server uses a self-signed certificate, also pass
   // -backend-config="skip_cert_verification=true".
   backend "http" {
-    # address        = "http://localhost:5000/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment"
-    # lock_address   = "http://localhost:5000/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/lock"
-    # unlock_address = "http://localhost:5000/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/unlock"
+    address        = "http://localhost:5000/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment"
+    lock_address   = "http://localhost:5000/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/lock"
+    unlock_address = "http://localhost:5000/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/unlock"
 
-
-    address        = "https://localhost:20002/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment"
-    lock_address   = "https://localhost:20002/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/lock"
-    unlock_address = "https://localhost:20002/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/unlock"
+    # address        = "https://localhost:20002/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment"
+    # lock_address   = "https://localhost:20002/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/lock"
+    # unlock_address = "https://localhost:20002/api/10000000-0000-0000-0000-000000000000/state/10000000-0000-0000-0000-000000000000/sample-deployment/unlock"
 
     lock_method   = "POST"
     unlock_method = "POST"
