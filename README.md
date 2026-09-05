@@ -2,6 +2,10 @@
 
 This sample demonstrates a sample deployment using the [Snap CD Terraform Provider](https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs).
 
+> 📺 **Watch it explained:** [The Sample Deployment | Deep Dive](https://youtu.be/v3R538Ww_oo) — a line-by-line walk through this exact project: the hierarchy, inputs, hooks, the state store, approvals, and how outputs propagate.
+
+[![The Sample Deployment — Deep Dive](https://img.youtube.com/vi/v3R538Ww_oo/maxresdefault.jpg)](https://youtu.be/v3R538Ww_oo)
+
 In the root of this repo is an OpenTofu project that you can run with `tofu init`, `tofu apply` and so forth. Within `./module/main.tf` you'll find the actual `snapcd_...` resources that will be created. These are in numbered sections, meant as a guide for the order in which you should read through them, as each subsequent one introduces a new resource type. You will find extensive comments that explain the thinking behind each of the resources.
 
 The Snap CD resources you will be creating will in turn manage four modules with mock resources (we will not actually be deploying a vpc etc.):
