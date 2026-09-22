@@ -124,7 +124,6 @@ Before `tofu apply` can succeed, you must:
 2. **Deploy at least one Agent Instance** that connects back to your Server. Use one of the reference deployments:
    - Docker Compose: <https://github.com/schrieksoft/snapcd-deployment-docker>
    - Kubernetes (Kustomize): <https://github.com/schrieksoft/snapcd-deployment-kubernetes>
-   - Local binary: <https://github.com/schrieksoft/snapcd-deployment-local>
 
    Each repo's `components/agent/` directory is a self-contained deployment for the Agent + its Sidecar pair. Bring it up and confirm the Agent appears as "Online" in the Dashboard before applying this sample.
 
