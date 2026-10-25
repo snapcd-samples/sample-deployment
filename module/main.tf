@@ -749,3 +749,182 @@ resource "snapcd_namespace_mission" "summarize_job" {
   mission_type = "SummarizeJob"
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// 8. Owning a Namespace, and granting access into it
+//
+// Learn about:
+// - snapcd_service_principal (as a data source)
+// - snapcd_runner (as a resource, rather than the data source used in section 3)
+// - snapcd_runner_namespace_supply
+// - snapcd_runner_stack_supply
+// - snapcd_namespace_role_assignment
+//
+// The pattern here is the one a platform team uses: this configuration owns a
+// Namespace, and decides from here which Runner may deploy into it and who may
+// work in it. The teams building Modules inside that Namespace manage none of
+// it, and do not need permission on the Runner or the Stack to use them.
+//
+// That split is why the two halves below belong together. A Runner is only
+// offered to a Module if it has been supplied to that Module, its Namespace,
+// its Stack, or to everything via "is_supplied_to_all_modules" — supplying it
+// is what makes deployment possible. A role assignment is what makes the
+// Namespace usable by a person or a Service Principal. Grant one without the
+// other and the Namespace either cannot deploy or cannot be touched.
+//
+// A Runner supplied to nothing is never selected, and a job on such a Module
+// stops at the SelectRunnerInstance step. That is the usual cause of that error
+// on a fresh organization, where the pre-seeded Runner is supplied to nothing.
+//
+// A Runner resource is only the registration in the control plane. It does not
+// deploy a Runner: the process itself still has to be installed somewhere and
+// pointed at this registration, using one of the reference deployments
+// (https://github.com/schrieksoft/snapcd-deployment-docker and the Kubernetes
+// and local equivalents). Until an instance of it connects, the Runner shows in
+// the Dashboard with no instances and any job assigned to it stays queued.
+//
+// The Runner's ID is what a deployed Runner process is configured with, so it is
+// exposed as the "scoped_runner_id" output. Read it with "tofu output".
+//
+// Nothing here changes how the Modules above are deployed: they are pinned to
+// the Runner fetched in section 3, and the Namespace created below holds no
+// Modules. Nothing is deployed against the Runner created here either.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+
+resource "snapcd_namespace" "scoped" {
+  // <NOTES>
+  //
+  // The Namespace this configuration owns. Everything below grants something
+  // into it, which is what makes this the boundary the platform team controls.
+  //
+  // For more detail, see:
+  // - https://docs.snapcd.io/how-it-works/configuration/stack-namespace-module/#namespace
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace
+  //
+  // </NOTES>
+
+  name           = var.scoped_namespace_name
+  stack_id       = data.snapcd_stack.sample.id
+  default_engine = "OpenTofu"
+}
+
+
+//// The Runner, and supplying it to the Namespace
+
+data "snapcd_service_principal" "default" {
+  // <NOTES>
+  //
+  // A Runner authenticates to the Server as a Service Principal, so one must
+  // exist before the Runner can be created. Rather than creating another, this
+  // reuses the pre-seeded "default" Service Principal that every organization
+  // starts with — the same credentials the example deployments (Docker,
+  // Kubernetes, local) already ship in the Runner's appsettings.json.
+  //
+  // Note the lookup is by client_id, not by name.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/data-sources/service_principal
+  //
+  // </NOTES>
+
+  client_id = "default"
+}
+
+resource "snapcd_runner" "scoped" {
+  // <NOTES>
+  //
+  // Creates a Runner. Compare this with section 3, which looks an existing
+  // Runner up with "data snapcd_runner" instead of declaring one.
+  //
+  // "is_supplied_to_all_modules" is left false so the supply below is what
+  // grants it. Setting it true is the blunt alternative: the Runner is then
+  // offered to every Module in the organization and no supply is needed, which
+  // gives up the control this section is demonstrating.
+  //
+  // "allow_multiple_instances" lets several Runner processes share this one
+  // Runner definition, each registering under its own instance name.
+  //
+  // Creating this resource registers the Runner; it does not start one. Deploy a
+  // Runner process separately and configure it with this Runner's ID, which the
+  // "scoped_runner_id" output carries.
+  //
+  // For more detail, see:
+  // - https://docs.snapcd.io/how-it-works/configuration/runner/
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/runner
+  //
+  // </NOTES>
+
+  name                       = var.scoped_runner_name
+  service_principal_id       = data.snapcd_service_principal.default.id
+  is_supplied_to_all_modules = false
+  allow_multiple_instances   = true
+}
+
+resource "snapcd_runner_namespace_supply" "scoped" {
+  // <NOTES>
+  //
+  // Grants the Runner to this Namespace, and to nothing else. A Module created
+  // in the Namespace may now select it without anyone holding a role on the
+  // Runner itself.
+  //
+  // snapcd_runner_stack_supply grants to a whole Stack and
+  // snapcd_runner_module_supply to one Module, so the same Runner can be shared
+  // at whichever scope matches the intent.
+  //
+  // For more detail, see:
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/runner_namespace_supply
+  //
+  // </NOTES>
+
+  runner_id    = snapcd_runner.scoped.id
+  namespace_id = snapcd_namespace.scoped.id
+}
+
+
+//// Who may work in the Namespace
+
+resource "snapcd_namespace_role_assignment" "scoped_contributor" {
+  // <NOTES>
+  //
+  // Grants a principal Contributor on this Namespace: enough to create and
+  // change Modules inside it, without any permission on the Stack above it or
+  // on the Runner it deploys with.
+  //
+  // The principal here is the pre-seeded "default" Service Principal, reused to
+  // keep the example self-contained. In a real deployment this is the team's own
+  // Service Principal or Group. "principal_discriminator" selects which of the
+  // three it is, and must be one of User, ServicePrincipal or Group.
+  //
+  // Available roles are Owner, Contributor, Reader, MetadataReader,
+  // ModuleCreator, IdentityAccessManager and JobManager.
+  //
+  // For more detail, see:
+  // - https://docs.snapcd.io/how-it-works/permissions/
+  // - https://registry.terraform.io/providers/schrieksoft/snapcd/latest/docs/resources/namespace_role_assignment
+  //
+  // </NOTES>
+
+  namespace_id            = snapcd_namespace.scoped.id
+  principal_id            = data.snapcd_service_principal.default.id
+  principal_discriminator = "ServicePrincipal"
+  role_name               = "Contributor"
+}
+
+resource "snapcd_namespace_role_assignment" "scoped_job_manager" {
+  // <NOTES>
+  //
+  // A second, narrower grant on the same Namespace, to show that roles are
+  // per-principal and per-scope. JobManager can run and approve jobs on the
+  // Modules in the Namespace without being able to change their definitions.
+  //
+  // </NOTES>
+
+  namespace_id            = snapcd_namespace.scoped.id
+  principal_id            = data.snapcd_service_principal.default.id
+  principal_discriminator = "ServicePrincipal"
+  role_name               = "JobManager"
+}

@@ -51,3 +51,15 @@ variable "sample_stack_secret_name" {
 variable "namespace_name" {
   default = "my-sample-namespace"
 }
+
+variable "scoped_runner_name" {
+  default = "sample-scoped-runner"
+  // Name of the Runner created in section 8 of the module. It is created rather
+  // than looked up, so this name must not already exist in the organization.
+}
+
+variable "scoped_namespace_name" {
+  default = "sample-scoped-namespace"
+  // Namespace created in section 8 of the module, to demonstrate granting a Runner
+  // and role assignments into a Namespace this configuration owns. It holds no Modules.
+}

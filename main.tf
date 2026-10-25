@@ -7,5 +7,7 @@ module "sample" {
   namespace_name                = var.namespace_name
   snapcd_server_url_from_runner = var.snapcd_server_url_from_runner
   organization_id               = var.organization_id
+  scoped_runner_name            = var.scoped_runner_name
+  scoped_namespace_name         = var.scoped_namespace_name
 }
 
