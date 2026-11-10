@@ -206,8 +206,12 @@ resource "snapcd_namespace_terraform_array_flag" "http_backend" {
   // $${SNAPCD_MODULE_NAME} comes from the namespace_input_from_definition above,
   // which injects the current module's name as an environment variable at deploy
   // time. $${SNAPCD_CLIENT_ID} and $${SNAPCD_CLIENT_SECRET} are configured in
-  // the Runner's appsettings.json under "RunnerEnvVars" — the example
+  // the Runner's appsettings.json under "RunnerEnvVars", and the example
   // deployments (Docker, Kubernetes, local) set these to "default".
+  //
+  // A Runner that authenticates with a Federated Credential has no client
+  // secret. It sets TF_HTTP_PASSWORD from its token instead, so the password
+  // flag is left out (var.runner_federated).
   //
   // The double-dollar escapes Terraform interpolation so the literal ${…} is
   // preserved in the output.
@@ -217,15 +221,16 @@ resource "snapcd_namespace_terraform_array_flag" "http_backend" {
   //
   // </NOTES>
 
-  for_each = {
+  for_each = merge({
     address        = "${var.snapcd_server_url_from_runner}/api/${var.organization_id}/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}"
     lock_address   = "${var.snapcd_server_url_from_runner}/api/${var.organization_id}/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/lock"
     unlock_address = "${var.snapcd_server_url_from_runner}/api/${var.organization_id}/state/${data.snapcd_state_store.default.id}/$${SNAPCD_MODULE_NAME}/unlock"
     lock_method    = "POST"
     unlock_method  = "POST"
     username       = "$${SNAPCD_CLIENT_ID}"
-    password       = "$${SNAPCD_CLIENT_SECRET}"
-  }
+    }, var.runner_federated ? {} : {
+    password = "$${SNAPCD_CLIENT_SECRET}"
+  })
   namespace_id = snapcd_namespace.sample.id
   task         = "Init"
   flag         = "BackendConfig"

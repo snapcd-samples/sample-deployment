@@ -7,3 +7,4 @@ variable "snapcd_server_url_from_runner" {}
 variable "organization_id" {}
 variable "scoped_runner_name" { default = "sample-scoped-runner" }
 variable "scoped_namespace_name" { default = "sample-scoped-namespace" }
+variable "runner_federated" { default = false }

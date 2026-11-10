@@ -9,5 +9,6 @@ module "sample" {
   organization_id               = var.organization_id
   scoped_runner_name            = var.scoped_runner_name
   scoped_namespace_name         = var.scoped_namespace_name
+  runner_federated              = var.runner_federated
 }
 

@@ -52,6 +52,15 @@ variable "namespace_name" {
   default = "my-sample-namespace"
 }
 
+variable "runner_federated" {
+  default = false
+  // Set to true when the Runner authenticates with a Federated Credential, as
+  // in the kind setup of github.com/schrieksoft/snapcd-deployment-kubernetes
+  // (scripts/kind-up.sh). Such a Runner has no client secret to pass to the
+  // State Store, so the backend password comes from TF_HTTP_PASSWORD, which the
+  // Runner sets from its token.
+}
+
 variable "scoped_runner_name" {
   default = "sample-scoped-runner"
   // Name of the Runner created in section 8 of the module. It is created rather
